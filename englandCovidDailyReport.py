@@ -118,6 +118,7 @@ def plotToPdf(df):
     ax1.plot( 'sevenDayMADeaths', data=df)
     ax1.legend() 
     plt.xticks(range(0,df.shape[0]) , df['threeWeeklyDate'] , rotation='vertical')
+    plt.title("Report Date: " + datetime.date.today().strftime("%d/%m/%Y") )
     plt.tight_layout()
     pdf.savefig(fig1)
 
@@ -127,6 +128,7 @@ def plotToPdf(df):
     ax2.plot( 'pctDeathsPerCase', data=df.loc[minDateInd : ])
     ax2.legend() 
     plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
+    plt.title("Report Date: " + datetime.date.today().strftime("%d/%m/%Y") )
     plt.tight_layout()
     pdf.savefig(fig2)
 
@@ -134,6 +136,7 @@ def plotToPdf(df):
     ax3.plot( 'sevenDayMATests', data=df.loc[minDateInd : ])
     ax3.legend() 
     plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
+    plt.title("Report Date: " + datetime.date.today().strftime("%d/%m/%Y") )
     plt.tight_layout()
     pdf.savefig(fig3)
 
@@ -152,8 +155,10 @@ def email_pdf():
     html = """\
     <html>
     <body>
-        <p>Dear Mr Reimer<br>
-        Please find your latest Covid-19 report for England, attached.<br>
+        <p>Good day!<br>
+        <br>
+        Please find your latest Covid-19 report for England attached.<br>
+        <br>
         Stay Safe!
         </p>
     </body>
