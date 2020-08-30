@@ -78,10 +78,10 @@ def process_df(df):
             sevenDayDeaths += df['newDeaths'][i+j]
             sevenDayTests += df['P2Tests'][i+j]
 
-        df.loc[df.index[i+6],'sevenDayMACases'] = np.round( (sevenDayCases / 7) ,1)
-        df.loc[df.index[i+6],'sevenDayMAAdmissions'] = np.round( (sevenDayAdmissions / 7) ,1)
-        df.loc[df.index[i+6],'sevenDayMADeaths'] = np.round( (sevenDayDeaths / 7) ,1)
-        df.loc[df.index[i+6],'sevenDayMATests'] = np.round( (sevenDayTests / 7) ,1)
+        df.loc[df.index[i+6],'sevenDayAvgCases'] = np.round( (sevenDayCases / 7) ,1)
+        df.loc[df.index[i+6],'sevenDayAvgAdmissions'] = np.round( (sevenDayAdmissions / 7) ,1)
+        df.loc[df.index[i+6],'sevenDayAvgDeaths'] = np.round( (sevenDayDeaths / 7) ,1)
+        df.loc[df.index[i+6],'sevenDayAvgP2Tests'] = np.round( (sevenDayTests / 7) ,1)
 
         if i%21 == 0:
             df.loc[df.index[i+6],'threeWeeklyDate'] = df.loc[df.index[i+6],'date']
@@ -94,9 +94,9 @@ def process_df(df):
             df.loc[df.index[i+6],'weeklyDate'] = ""
 
 
-    df["pctAdmissionsPerCase"] = 100.0 * df["sevenDayMAAdmissions"] / df["sevenDayMACases"] 
-    df["pctDeathsPerCase"] = 100.0 * df["sevenDayMADeaths"] / df["sevenDayMACases"] 
-    df["pctCasesPerTest"] = 100.0 * df["sevenDayMACases"] / df["sevenDayMATests"]
+    df["pctAdmissionsPerCase"] = 100.0 * df["sevenDayAvgAdmissions"] / df["sevenDayAvgCases"] 
+    df["pctDeathsPerCase"] = 100.0 * df["sevenDayAvgDeaths"] / df["sevenDayAvgCases"] 
+    df["pctCasesPerTest"] = 100.0 * df["sevenDayAvgCases"] / df["sevenDayAvgP2Tests"]
 
     df = df.replace([np.inf, -np.inf], np.nan)
     df[['threeWeeklyDate']] = df[['threeWeeklyDate']].fillna(value="")
@@ -107,42 +107,75 @@ def process_df(df):
 def plotToPdf(df):
     
     minDateInd = df[ df['date']=='2020-07-14'].index.values.astype(int)[0]
+    PeakDateInd = df[ df['date']=='2020-04-11'].index.values.astype(int)[0]
     
     outputFile = "englandCovidDailyReport.pdf"
 
     pdf = backend_pdf.PdfPages(outputFile)
 
+
+    ### FIRST PLOT
+
     fig1, ax1 = plt.subplots()
-    ax1.plot( 'sevenDayMACases', data=df)
-    ax1.plot( 'sevenDayMAAdmissions', data=df)
-    ax1.plot( 'sevenDayMADeaths', data=df)
+    ax1.plot( 'sevenDayAvgCases', data=df)
+    ax1.plot( 'sevenDayAvgAdmissions', data=df)
+    ax1.plot( 'sevenDayAvgDeaths', data=df)
+
+    caseMax = df['sevenDayAvgCases'].max()
+    caseMaxPos = df['sevenDayAvgCases'].idxmax()
+    caseMaxDate = pd.to_datetime( df['date'][caseMaxPos] ).strftime('%d %B')
+    ax1.annotate('Max Cases:\n' + str(int(caseMax)) + ' on ' + caseMaxDate  , 
+                xy=(caseMaxPos, caseMax), xytext=(caseMaxPos, caseMax+60),
+                ha='center' )
+    
+    caseMin = df.loc[PeakDateInd : ]['sevenDayAvgCases'].min()
+    caseMinPos = df.loc[PeakDateInd : ]['sevenDayAvgCases'].idxmin()
+    caseMinDate = pd.to_datetime( df.loc[PeakDateInd : ]['date'][caseMinPos] ).strftime('%d %B')
+    ax1.annotate('Min Cases:\n' + str(int(caseMin)) + ' on ' + caseMinDate  , 
+                xy=(caseMinPos, caseMin), xytext=(caseMinPos, 1000),
+                ha='center' )
+    
+    ax1.set_xlim(0, df.shape[1])
+    ax1.set_ylim(0, caseMax+400)
+
     ax1.legend() 
     plt.xticks(range(0,df.shape[0]) , df['threeWeeklyDate'] , rotation='vertical')
-    plt.title("Report Date: " + datetime.date.today().strftime("%d/%m/%Y") )
     plt.tight_layout()
     pdf.savefig(fig1)
+
+
+    ### SECOND PLOT
 
     fig2, ax2 = plt.subplots()
     ax2.plot( 'pctCasesPerTest', data=df.loc[minDateInd : ])
     ax2.plot( 'pctAdmissionsPerCase', data=df.loc[minDateInd : ])
     ax2.plot( 'pctDeathsPerCase', data=df.loc[minDateInd : ])
     ax2.legend() 
+
+    ax2.set_xlim(0, df.loc[minDateInd : ].shape[1])
+
     plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
-    plt.title("Report Date: " + datetime.date.today().strftime("%d/%m/%Y") )
     plt.tight_layout()
     pdf.savefig(fig2)
 
+
+    ### THIRD PLOT
+
     fig3, ax3 = plt.subplots()
-    ax3.plot( 'sevenDayMATests', data=df.loc[minDateInd : ])
+    ax3.plot( 'sevenDayAvgP2Tests', data=df.loc[minDateInd : ])
     ax3.legend() 
+
+    ax3.set_xlim(0, df.loc[minDateInd : ].shape[1])
+
     plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
-    plt.title("Report Date: " + datetime.date.today().strftime("%d/%m/%Y") )
     plt.tight_layout()
     pdf.savefig(fig3)
 
+    ### CLOSE THE PDF
+
     pdf.close()
 
-def email_pdf():  
+def email_pdf(recipients, df):  
 
     fromEmail = 'newsDigest16@gmail.com'
     toEmail = 'tomreimer16@gmail.com'
@@ -152,18 +185,30 @@ def email_pdf():
     msg["From"] = fromEmail
     msg["To"] = toEmail
     
-    html = """\
+    html = """
     <html>
     <body>
         <p>Good day!<br>
         <br>
-        Please find your latest Covid-19 report for England attached.<br>
+        Please find your latest Covid-19 report for England attached. Report Date: %s <br>
+        <br>
+        7 Day Average Cases: %s <br>
+        7 Day Average Admissions: %s <br>
+        7 Day Average Deaths: %s <br>
+        7 Day Average Pillar 2 Test: %s <br>
+        7 Day Average Cases Per Pillar 2 Test: %s %% <br>
         <br>
         Stay Safe!
         </p>
     </body>
     </html>
-    """
+    """% ( datetime.date.today().strftime("%d/%m/%Y"),
+             df["sevenDayAvgCases"].iloc[-1],
+             df["sevenDayAvgAdmissions"][df["sevenDayAvgAdmissions"].last_valid_index()],
+             df["sevenDayAvgDeaths"][df["sevenDayAvgDeaths"].last_valid_index()],
+             df["sevenDayAvgP2Tests"][df["sevenDayAvgP2Tests"].last_valid_index()],
+             round( df["pctCasesPerTest"][df["pctCasesPerTest"].last_valid_index()] , 2),
+             )
 
     mime = MIMEText(html, 'html')
 
@@ -190,23 +235,29 @@ def email_pdf():
     # Add attachment to message and convert message to string
     msg.attach(part)
 
-    try:
-        mail = smtplib.SMTP('smtp.gmail.com', 587)
-        mail.ehlo()
-        mail.starttls()
-        mail.login(fromEmail, password)
-        mail.sendmail(fromEmail, toEmail, msg.as_string())
-        mail.quit()
-        print('Email sent!')
-    except Exception as e:
-        print('Something went wrong... %s' % e)
+    for i in recipients:
+        toEmail = i
+        msg["To"] = toEmail
+
+        try:
+            mail = smtplib.SMTP('smtp.gmail.com', 587)
+            mail.ehlo()
+            mail.starttls()
+            mail.login(fromEmail, password)
+            mail.sendmail(fromEmail, toEmail, msg.as_string())
+            mail.quit()
+            print('Email sent!')
+        except Exception as e:
+            print('Something went wrong... %s' % e)
 
 def main():
     
     initialDf = get_df_from_api()
     finalDf = process_df(initialDf)
     plotToPdf(finalDf)
-    email_pdf()
+
+    recipients = ['tomreimer16@gmail.com']#,'elliehall@live.com.au']
+    email_pdf(recipients, finalDf)
 
 
 if __name__ == "__main__":
