@@ -135,7 +135,7 @@ def plotToPdf(df):
                 xy=(caseMinPos, caseMin), xytext=(caseMinPos, 1000),
                 ha='center' )
     
-    ax1.set_xlim(0, df.shape[1])
+    ax1.set_xlim(0, df.shape[0])
     ax1.set_ylim(0, caseMax+400)
 
     ax1.legend() 
@@ -152,7 +152,7 @@ def plotToPdf(df):
     ax2.plot( 'pctDeathsPerCase', data=df.loc[minDateInd : ])
     ax2.legend() 
 
-    ax2.set_xlim(0, df.loc[minDateInd : ].shape[1])
+    ax2.set_xlim(minDateInd, df.shape[0])
 
     plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
     plt.tight_layout()
@@ -165,7 +165,7 @@ def plotToPdf(df):
     ax3.plot( 'sevenDayAvgP2Tests', data=df.loc[minDateInd : ])
     ax3.legend() 
 
-    ax3.set_xlim(0, df.loc[minDateInd : ].shape[1])
+    ax3.set_xlim(minDateInd, df.shape[0])
 
     plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
     plt.tight_layout()
@@ -256,7 +256,7 @@ def main():
     finalDf = process_df(initialDf)
     plotToPdf(finalDf)
 
-    recipients = ['tomreimer16@gmail.com']#,'elliehall@live.com.au']
+    recipients = ['tomreimer16@gmail.com','elliehall@live.com.au']
     email_pdf(recipients, finalDf)
 
 
