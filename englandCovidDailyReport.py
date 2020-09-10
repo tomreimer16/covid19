@@ -14,7 +14,17 @@ from email.mime.base import MIMEBase
 from secrets import password
 import datetime
 
-# function to get JSON information from API
+
+# feedback:
+# [10:45, 01/09/2020] Ellie Hall: So for the email I’d say it’s worth clarifying what the pillar 2 test is (is this something everyone would know?)
+# [10:45, 01/09/2020] Ellie Hall: I’ll look at the graphs now :)
+# [10:46, 01/09/2020] Ellie Hall: Maybe worth clarifying ‘admissions’ too even though that one’s more self explanatory
+# [10:49, 01/09/2020] Ellie Hall: Can’t really think of much feedback on the graphs, other than the P2 test explanation again
+# [10:50, 01/09/2020] Ellie Hall: They’re so good egg :)
+# [10:50, 01/09/2020] Ellie Hall: I’m so impressed
+# [10:50, 01/09/2020] Ellie Hall: In terms of aesthetic, could you switch the date format so it reads, 09-01-2020 rather than 2020-01-09
+# [10:53, 01/09/2020] Ellie Hall: And should the third graph also show avg cases per P2 test, given that’s in the summary email?
+
 
 def get_data(api_params):
     
