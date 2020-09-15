@@ -15,17 +15,6 @@ from secrets import password
 import datetime
 
 
-# feedback:
-# [10:45, 01/09/2020] Ellie Hall: So for the email I’d say it’s worth clarifying what the pillar 2 test is (is this something everyone would know?)
-# [10:45, 01/09/2020] Ellie Hall: I’ll look at the graphs now :)
-# [10:46, 01/09/2020] Ellie Hall: Maybe worth clarifying ‘admissions’ too even though that one’s more self explanatory
-# [10:49, 01/09/2020] Ellie Hall: Can’t really think of much feedback on the graphs, other than the P2 test explanation again
-# [10:50, 01/09/2020] Ellie Hall: They’re so good egg :)
-# [10:50, 01/09/2020] Ellie Hall: I’m so impressed
-# [10:50, 01/09/2020] Ellie Hall: In terms of aesthetic, could you switch the date format so it reads, 09-01-2020 rather than 2020-01-09
-# [10:53, 01/09/2020] Ellie Hall: And should the third graph also show avg cases per P2 test, given that’s in the summary email?
-
-
 def get_data(api_params):
     
     ENDPOINT = "https://api.coronavirus.data.gov.uk/v1/data"
@@ -68,6 +57,7 @@ def get_df_from_api():
     # extract the desired data
 
     df = pd.DataFrame(apiJson["data"])
+    df['date']=pd.to_datetime(df['date'])
     df.sort_values(by='date',ascending=True,inplace=True)
     df.reset_index(drop=True, inplace=True)
 
@@ -94,12 +84,12 @@ def process_df(df):
         df.loc[df.index[i+6],'sevenDayAvgP2Tests'] = np.round( (sevenDayTests / 7) ,1)
 
         if i%21 == 0:
-            df.loc[df.index[i+6],'threeWeeklyDate'] = df.loc[df.index[i+6],'date']
+            df.loc[df.index[i+6],'threeWeeklyDate'] = df.loc[df.index[i+6],'date'].strftime('%d %b %Y')
         else:
             df.loc[df.index[i+6],'threeWeeklyDate'] = ""
         
         if i%7 == 0:
-            df.loc[df.index[i+6],'weeklyDate'] = df.loc[df.index[i+6],'date']
+            df.loc[df.index[i+6],'weeklyDate'] = df.loc[df.index[i+6],'date'].strftime('%d %b %Y')
         else:
             df.loc[df.index[i+6],'weeklyDate'] = ""
 
@@ -116,9 +106,8 @@ def process_df(df):
 
 def plotToPdf(df):
     
-    minDateInd = df[ df['date']=='2020-07-14'].index.values.astype(int)[0]
-    PeakDateInd = df[ df['date']=='2020-04-11'].index.values.astype(int)[0]
-    
+    marchDateInd = df[ df['date']=='2020-03-01'].index.values.astype(int)[0]
+    midJulyDateInd = df[ df['date']=='2020-07-14'].index.values.astype(int)[0]
     outputFile = "englandCovidDailyReport.pdf"
 
     pdf = backend_pdf.PdfPages(outputFile)
@@ -128,43 +117,58 @@ def plotToPdf(df):
 
     fig1, ax1 = plt.subplots()
     ax1.plot( 'sevenDayAvgCases', data=df)
-    ax1.plot( 'sevenDayAvgAdmissions', data=df)
-    ax1.plot( 'sevenDayAvgDeaths', data=df)
+    ax1.plot( 'newCases', data=df)
 
     caseMax = df['sevenDayAvgCases'].max()
+    caseMaxForAxis = df['newCases'].max()+600
     caseMaxPos = df['sevenDayAvgCases'].idxmax()
     caseMaxDate = pd.to_datetime( df['date'][caseMaxPos] ).strftime('%d %B')
-    ax1.annotate('Max Cases:\n' + str(int(caseMax)) + ' on ' + caseMaxDate  , 
+    ax1.annotate('Max 7 Day Avg Cases:\n' + str(int(caseMax)) + ' on ' + caseMaxDate  , 
                 xy=(caseMaxPos, caseMax), xytext=(caseMaxPos, caseMax+60),
                 ha='center' )
     
-    caseMin = df.loc[PeakDateInd : ]['sevenDayAvgCases'].min()
-    caseMinPos = df.loc[PeakDateInd : ]['sevenDayAvgCases'].idxmin()
-    caseMinDate = pd.to_datetime( df.loc[PeakDateInd : ]['date'][caseMinPos] ).strftime('%d %B')
-    ax1.annotate('Min Cases:\n' + str(int(caseMin)) + ' on ' + caseMinDate  , 
+    caseMin = df.loc[caseMaxPos : ]['sevenDayAvgCases'].min()
+    caseMinPos = df.loc[caseMaxPos : ]['sevenDayAvgCases'].idxmin()
+    caseMinDate = pd.to_datetime( df.loc[caseMaxPos : ]['date'][caseMinPos] ).strftime('%d %B')
+    ax1.annotate('Min 7 Day Avg Cases:\n' + str(int(caseMin)) + ' on ' + caseMinDate  , 
                 xy=(caseMinPos, caseMin), xytext=(caseMinPos, 1000),
                 ha='center' )
     
-    ax1.set_xlim(0, df.shape[0])
-    ax1.set_ylim(0, caseMax+400)
+    ax1.set_xlim(marchDateInd, df.shape[0])
+    ax1.set_ylim(0, caseMaxForAxis)
 
-    ax1.legend() 
-    plt.xticks(range(0,df.shape[0]) , df['threeWeeklyDate'] , rotation='vertical')
+    ax1.legend()
+    plt.xticks(range(marchDateInd,df.shape[0]) ,
+                df[marchDateInd : ]['threeWeeklyDate'],
+                rotation='vertical')
     plt.tight_layout()
     pdf.savefig(fig1)
+
+    ### FOURTH PLOT
+
+    fig4, ax4 = plt.subplots()
+    ax4.plot( 'sevenDayAvgAdmissions', data=df)
+    ax4.plot( 'sevenDayAvgDeaths', data=df)
+
+    ax4.set_ylim(0, 2500)
+    
+    ax4.legend() 
+    plt.xticks(range(marchDateInd,df.shape[0]) , df[marchDateInd : ]['threeWeeklyDate'] , rotation='vertical')
+    plt.tight_layout()
+    pdf.savefig(fig4)
 
 
     ### SECOND PLOT
 
     fig2, ax2 = plt.subplots()
-    ax2.plot( 'pctCasesPerTest', data=df.loc[minDateInd : ])
-    ax2.plot( 'pctAdmissionsPerCase', data=df.loc[minDateInd : ])
-    ax2.plot( 'pctDeathsPerCase', data=df.loc[minDateInd : ])
+    ax2.plot( 'pctCasesPerTest', data=df.loc[midJulyDateInd : ])
+    ax2.plot( 'pctAdmissionsPerCase', data=df.loc[midJulyDateInd : ])
+    ax2.plot( 'pctDeathsPerCase', data=df.loc[midJulyDateInd : ])
     ax2.legend() 
 
-    ax2.set_xlim(minDateInd, df.shape[0])
+    ax2.set_xlim(midJulyDateInd, df.shape[0])
 
-    plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
+    plt.xticks(range(midJulyDateInd,df.shape[0]) , df[midJulyDateInd : ]['weeklyDate'] , rotation='vertical')
     plt.tight_layout()
     pdf.savefig(fig2)
 
@@ -172,12 +176,12 @@ def plotToPdf(df):
     ### THIRD PLOT
 
     fig3, ax3 = plt.subplots()
-    ax3.plot( 'sevenDayAvgP2Tests', data=df.loc[minDateInd : ])
+    ax3.plot( 'sevenDayAvgP2Tests', data=df.loc[midJulyDateInd : ])
     ax3.legend() 
 
-    ax3.set_xlim(minDateInd, df.shape[0])
+    ax3.set_xlim(midJulyDateInd, df.shape[0])
 
-    plt.xticks(range(minDateInd,df.shape[0]) , df[minDateInd : ]['weeklyDate'] , rotation='vertical')
+    plt.xticks(range(midJulyDateInd,df.shape[0]) , df[midJulyDateInd : ]['weeklyDate'] , rotation='vertical')
     plt.tight_layout()
     pdf.savefig(fig3)
 
@@ -188,12 +192,10 @@ def plotToPdf(df):
 def email_pdf(recipients, df):  
 
     fromEmail = 'newsDigest16@gmail.com'
-    toEmail = 'tomreimer16@gmail.com'
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "Daily Covid Report -- " + str(datetime.date.today())
     msg["From"] = fromEmail
-    msg["To"] = toEmail
     
     html = """
     <html>
@@ -203,12 +205,17 @@ def email_pdf(recipients, df):
         Please find your latest Covid-19 report for England attached. Report Date: %s <br>
         <br>
         7 Day Average Cases: %s <br>
-        7 Day Average Admissions: %s <br>
+        7 Day Average Admissions*: %s <br>
         7 Day Average Deaths: %s <br>
-        7 Day Average Pillar 2 Test: %s <br>
+        7 Day Average Pillar 2* Test: %s <br>
         7 Day Average Cases Per Pillar 2 Test: %s %% <br>
         <br>
         Stay Safe!
+        <br>
+        <br>
+        <i>*Number of confirmed COVID-19 patients admitted to hospital</i>
+        <br>
+        <i>*Pillar 2 tests are antigen tests conducted by commercial partners of PHE</i>
         </p>
     </body>
     </html>
@@ -268,7 +275,6 @@ def main():
 
     recipients = ['tomreimer16@gmail.com','elliehall@live.com.au']
     email_pdf(recipients, finalDf)
-
 
 if __name__ == "__main__":
 
