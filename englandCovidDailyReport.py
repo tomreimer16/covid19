@@ -208,6 +208,7 @@ def email_pdf(recipients, df):
     <html>
     <body>
         <h2>England Covid-19 Report for %s</h2>
+        <br>
         <p>
         <h4>Summary Statistics - 7 day averages:</h4>
         Cases: <strong>%s</strong> <br>
