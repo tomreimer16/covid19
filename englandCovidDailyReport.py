@@ -40,10 +40,11 @@ def get_df_from_api():
     structure = {
         "date": "date",
         "name": "areaName",
-        "newCases": "newCasesByPublishDate",
+        "newCases": "newCasesBySpecimenDate",
         "newAdmissions": "newAdmissions",
         "newDeaths": "newDeaths28DaysByDeathDate",
-        "P2Tests": "newPillarTwoTestsByPublishDate"  
+        "P2Tests": "newPillarTwoTestsByPublishDate",  
+        "NewTests": "newTestsByPublishDate"
     }
 
     api_params = {
@@ -70,18 +71,21 @@ def process_df(df):
         sevenDayCases = 0
         sevenDayAdmissions = 0
         sevenDayDeaths = 0
+        sevenDayP2Tests = 0
         sevenDayTests = 0
 
         for j in range(0,6):
             sevenDayCases += df['newCases'][i+j]
             sevenDayAdmissions += df['newAdmissions'][i+j]
             sevenDayDeaths += df['newDeaths'][i+j]
-            sevenDayTests += df['P2Tests'][i+j]
+            sevenDayP2Tests += df['P2Tests'][i+j]
+            sevenDayTests += df['NewTests'][i+j]
 
         df.loc[df.index[i+6],'sevenDayAvgCases'] = np.round( (sevenDayCases / 7) ,1)
         df.loc[df.index[i+6],'sevenDayAvgAdmissions'] = np.round( (sevenDayAdmissions / 7) ,1)
         df.loc[df.index[i+6],'sevenDayAvgDeaths'] = np.round( (sevenDayDeaths / 7) ,1)
-        df.loc[df.index[i+6],'sevenDayAvgP2Tests'] = np.round( (sevenDayTests / 7) ,1)
+        df.loc[df.index[i+6],'sevenDayAvgP2Tests'] = np.round( (sevenDayP2Tests / 7) ,1)
+        df.loc[df.index[i+6],'sevenDayAvgTests'] = np.round( (sevenDayTests / 7) ,1)
 
         if i%21 == 0:
             df.loc[df.index[i+6],'threeWeeklyDate'] = df.loc[df.index[i+6],'date'].strftime('%d %b %Y')
@@ -96,7 +100,7 @@ def process_df(df):
 
     df["pctAdmissionsPerCase"] = 100.0 * df["sevenDayAvgAdmissions"] / df["sevenDayAvgCases"] 
     df["pctDeathsPerCase"] = 100.0 * df["sevenDayAvgDeaths"] / df["sevenDayAvgCases"] 
-    df["pctCasesPerTest"] = 100.0 * df["sevenDayAvgCases"] / df["sevenDayAvgP2Tests"]
+    df["pctCasesPerTest"] = 100.0 * df["sevenDayAvgCases"] / df["sevenDayAvgTests"]
 
     df = df.replace([np.inf, -np.inf], np.nan)
     df[['threeWeeklyDate']] = df[['threeWeeklyDate']].fillna(value="")
@@ -107,20 +111,20 @@ def process_df(df):
 def plotToPdf(df):
     
     marchDateInd = df[ df['date']=='2020-03-01'].index.values.astype(int)[0]
-    midJulyDateInd = df[ df['date']=='2020-07-14'].index.values.astype(int)[0]
+    augustDateInd = df[ df['date']=='2020-08-01'].index.values.astype(int)[0]
     outputFile = "englandCovidDailyReport.pdf"
 
     pdf = backend_pdf.PdfPages(outputFile)
 
 
-    ### FIRST PLOT
+    ### CASES PLOT
 
     fig1, ax1 = plt.subplots()
     ax1.plot( 'sevenDayAvgCases', data=df)
     ax1.plot( 'newCases', data=df)
 
     caseMax = df['sevenDayAvgCases'].max()
-    caseMaxForAxis = df['newCases'].max()+600
+    caseMaxForAxis = df['newCases'].max()+100
     caseMaxPos = df['sevenDayAvgCases'].idxmax()
     caseMaxDate = pd.to_datetime( df['date'][caseMaxPos] ).strftime('%d %B')
     ax1.annotate('Max 7 Day Avg Cases:\n' + str(int(caseMax)) + ' on ' + caseMaxDate  , 
@@ -144,7 +148,7 @@ def plotToPdf(df):
     plt.tight_layout()
     pdf.savefig(fig1)
 
-    ### FOURTH PLOT
+    ### Admissions / Deaths PLOT
 
     fig4, ax4 = plt.subplots()
     ax4.plot( 'sevenDayAvgAdmissions', data=df)
@@ -158,30 +162,33 @@ def plotToPdf(df):
     pdf.savefig(fig4)
 
 
-    ### SECOND PLOT
+    ### Percentages PLOT
 
     fig2, ax2 = plt.subplots()
-    ax2.plot( 'pctCasesPerTest', data=df.loc[midJulyDateInd : ])
-    ax2.plot( 'pctAdmissionsPerCase', data=df.loc[midJulyDateInd : ])
-    ax2.plot( 'pctDeathsPerCase', data=df.loc[midJulyDateInd : ])
+    ax2.plot( 'pctCasesPerTest', data=df.loc[augustDateInd : ])
+    ax2.plot( 'pctAdmissionsPerCase', data=df.loc[augustDateInd : ])
+    ax2.plot( 'pctDeathsPerCase', data=df.loc[augustDateInd : ])
     ax2.legend() 
 
-    ax2.set_xlim(midJulyDateInd, df.shape[0])
+    ax2.set_xlim(augustDateInd, df.shape[0])
+    plt.xticks(range(augustDateInd,df.shape[0]) , df[augustDateInd : ]['weeklyDate'] , rotation='vertical')
+    ax2.yaxis.set_ticks(np.arange(0, 10, 0.5))
+    ax2.set_ylabel("%")
 
-    plt.xticks(range(midJulyDateInd,df.shape[0]) , df[midJulyDateInd : ]['weeklyDate'] , rotation='vertical')
     plt.tight_layout()
     pdf.savefig(fig2)
 
 
-    ### THIRD PLOT
+    ### Tests PLOT
 
     fig3, ax3 = plt.subplots()
-    ax3.plot( 'sevenDayAvgP2Tests', data=df.loc[midJulyDateInd : ])
+    ax3.plot( 'sevenDayAvgP2Tests', data=df.loc[augustDateInd : ])
+    ax3.plot( 'sevenDayAvgTests', data=df.loc[augustDateInd : ])
     ax3.legend() 
 
-    ax3.set_xlim(midJulyDateInd, df.shape[0])
+    ax3.set_xlim(augustDateInd, df.shape[0])
 
-    plt.xticks(range(midJulyDateInd,df.shape[0]) , df[midJulyDateInd : ]['weeklyDate'] , rotation='vertical')
+    plt.xticks(range(augustDateInd,df.shape[0]) , df[augustDateInd : ]['weeklyDate'] , rotation='vertical')
     plt.tight_layout()
     pdf.savefig(fig3)
 
@@ -194,36 +201,39 @@ def email_pdf(recipients, df):
     fromEmail = 'newsDigest16@gmail.com'
 
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = "Daily Covid Report -- " + str(datetime.date.today())
+    msg['Subject'] = "Daily Covid Report"
     msg["From"] = fromEmail
     
     html = """
     <html>
     <body>
-        <p>Good day!<br>
+        <h2>England Covid-19 Report for %s</h2>
+        <p>
+        <h4>Summary Statistics - 7 day averages:</h4>
+        Cases: <strong>%s</strong> <br>
+        Admissions: <strong>%s</strong> <br>
+        Deaths: <strong>%s</strong> <br>
+        Pillar 2 Tests: <strong>%s</strong> <br>
+        Tests: <strong>%s</strong> <br>
+        Cases Per Test: <strong>%s</strong>%% <br>
         <br>
-        Please find your latest Covid-19 report for England attached. Report Date: %s <br>
-        <br>
-        7 Day Average Cases: %s <br>
-        7 Day Average Admissions*: %s <br>
-        7 Day Average Deaths: %s <br>
-        7 Day Average Pillar 2* Test: %s <br>
-        7 Day Average Cases Per Pillar 2 Test: %s %% <br>
+        <h4>Notes:</h4>
+        <ul>
+            <li>Cases are recognised by specimen date, while deaths are recognised by death date</li>
+            <li>Admissions are <span style="text-decoration: underline;">confirmed</span> COVID-19 patients admitted to hospital</li>
+            <li>Pillar 2 tests are antigen tests conducted by commercial partners of PHE</li>
+        </ul>
         <br>
         Stay Safe!
-        <br>
-        <br>
-        <i>*Number of confirmed COVID-19 patients admitted to hospital</i>
-        <br>
-        <i>*Pillar 2 tests are antigen tests conducted by commercial partners of PHE</i>
         </p>
     </body>
     </html>
-    """% ( datetime.date.today().strftime("%d/%m/%Y"),
+    """% ( datetime.date.today().strftime('%d %B %Y'),
              df["sevenDayAvgCases"].iloc[-1],
              df["sevenDayAvgAdmissions"][df["sevenDayAvgAdmissions"].last_valid_index()],
              df["sevenDayAvgDeaths"][df["sevenDayAvgDeaths"].last_valid_index()],
-             df["sevenDayAvgP2Tests"][df["sevenDayAvgP2Tests"].last_valid_index()],
+             int(df["sevenDayAvgP2Tests"][df["sevenDayAvgP2Tests"].last_valid_index()]),
+             int(df["sevenDayAvgTests"][df["sevenDayAvgTests"].last_valid_index()]),
              round( df["pctCasesPerTest"][df["pctCasesPerTest"].last_valid_index()] , 2),
              )
 
@@ -273,7 +283,7 @@ def main():
     finalDf = process_df(initialDf)
     plotToPdf(finalDf)
 
-    recipients = ['tomreimer16@gmail.com','elliehall@live.com.au']
+    recipients = ['tomreimer16@gmail.com', 'elliehall@live.com.au', 'danielrthorpe@icloud.com']
     email_pdf(recipients, finalDf)
 
 if __name__ == "__main__":
