@@ -284,7 +284,7 @@ def main():
     finalDf = process_df(initialDf)
     plotToPdf(finalDf)
 
-    recipients = ['tomreimer16@gmail.com', 'elliehall@live.com.au', 'danielrthorpe@icloud.com']
+    recipients = ['tomreimer16@gmail.com', 'elliehall@live.com.au', 'danielrthorpe@icloud.com','edwardwilson725@gmail.com']
     email_pdf(recipients, finalDf)
 
 if __name__ == "__main__":
