@@ -14,7 +14,6 @@ from email.mime.base import MIMEBase
 from secrets import password
 import datetime
 
-
 def get_data(api_params):
     
     ENDPOINT = "https://api.coronavirus.data.gov.uk/v1/data"
@@ -120,15 +119,15 @@ def plotToPdf(df):
     ### CASES PLOT
 
     fig1, ax1 = plt.subplots()
-    ax1.plot( 'sevenDayAvgCases', data=df)
-    ax1.plot( 'newCases', data=df)
+    df.plot(y='newCases', kind='bar', ax=ax1)
+    df.plot(y='sevenDayAvgCases', kind='line', ax=ax1, color='orange')
 
     caseMax = df['sevenDayAvgCases'].max()
     caseMaxForAxis = df['newCases'].max()+100
     caseMaxPos = df['sevenDayAvgCases'].idxmax()
     caseMaxDate = pd.to_datetime( df['date'][caseMaxPos] ).strftime('%d %B')
     ax1.annotate('Max 7 Day Avg Cases:\n' + str(int(caseMax)) + ' on ' + caseMaxDate  , 
-                xy=(caseMaxPos, caseMax), xytext=(caseMaxPos, caseMax+60),
+                xy=(caseMaxPos+42, caseMax), xytext=(caseMaxPos+42, caseMax+60),
                 ha='center' )
     
     caseMin = df.loc[caseMaxPos : ]['sevenDayAvgCases'].min()
@@ -151,12 +150,19 @@ def plotToPdf(df):
     ### Admissions / Deaths PLOT
 
     fig4, ax4 = plt.subplots()
-    ax4.plot( 'sevenDayAvgAdmissions', data=df)
-    ax4.plot( 'sevenDayAvgDeaths', data=df)
+    ax44 = ax4.twinx()
 
+    df.plot(y='sevenDayAvgAdmissions', kind='line', ax=ax4, color='orange', legend=False, rot=90)
+    df.plot(y='sevenDayAvgDeaths', kind='line', ax=ax44, color='red', legend=False)
+
+    ax4.set_ylabel('Hospital Admissions')
     ax4.set_ylim(0, 2500)
+
+    ax44.set_ylabel('Deaths')
+    ax44.set_ylim(0, 800)
     
-    ax4.legend() 
+    ax4.legend(loc='upper right' , bbox_to_anchor = (0.9, 0.71, 0.09, 0.28) )
+    ax44.legend(loc='center right' , bbox_to_anchor = (0.9, 0.71, 0.09, 0.28) )
     plt.xticks(range(marchDateInd,df.shape[0]) , df[marchDateInd : ]['threeWeeklyDate'] , rotation='vertical')
     plt.tight_layout()
     pdf.savefig(fig4)
@@ -196,6 +202,8 @@ def plotToPdf(df):
 
     pdf.close()
 
+
+# add "vs prev week" into email
 def email_pdf(recipients, df):  
 
     fromEmail = 'newsDigest16@gmail.com'
@@ -210,13 +218,12 @@ def email_pdf(recipients, df):
         <h2>England Covid-19 Report for %s</h2>
         <br>
         <p>
-        <h4>Summary Statistics - 7 day averages:</h4>
-        Cases: <strong>%s</strong> <br>
-        Admissions: <strong>%s</strong> <br>
-        Deaths: <strong>%s</strong> <br>
-        Pillar 2 Tests: <strong>%s</strong> <br>
-        Tests: <strong>%s</strong> <br>
-        Cases Per Test: <strong>%s</strong>%% <br>
+        <h4>Summary Statistics - 7 day averages (vs last week):</h4>
+        Cases: <strong>%s</strong> (%s) <br>
+        Admissions: <strong>%s</strong> (%s) <br>
+        Deaths: <strong>%s</strong> (%s) <br>
+        Tests: <strong>%s</strong> (%s) <br>
+        Cases Per Test: <strong>%s</strong>%% (%s%%) <br>
         <br>
         <h4>Notes:</h4>
         <ul>
@@ -231,11 +238,15 @@ def email_pdf(recipients, df):
     </html>
     """% ( datetime.date.today().strftime('%d %B %Y'),
              df["sevenDayAvgCases"].iloc[-1],
+             df["sevenDayAvgCases"].iloc[-8],
              df["sevenDayAvgAdmissions"][df["sevenDayAvgAdmissions"].last_valid_index()],
+             df["sevenDayAvgAdmissions"][df["sevenDayAvgAdmissions"].last_valid_index()-7],
              df["sevenDayAvgDeaths"][df["sevenDayAvgDeaths"].last_valid_index()],
-             int(df["sevenDayAvgP2Tests"][df["sevenDayAvgP2Tests"].last_valid_index()]),
+             df["sevenDayAvgDeaths"][df["sevenDayAvgDeaths"].last_valid_index()-7],
              int(df["sevenDayAvgTests"][df["sevenDayAvgTests"].last_valid_index()]),
+             int(df["sevenDayAvgTests"][df["sevenDayAvgTests"].last_valid_index()-7]),
              round( df["pctCasesPerTest"][df["pctCasesPerTest"].last_valid_index()] , 2),
+             round( df["pctCasesPerTest"][df["pctCasesPerTest"].last_valid_index()-7] , 2),
              )
 
     mime = MIMEText(html, 'html')
