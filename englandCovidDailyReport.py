@@ -123,22 +123,20 @@ def plotToPdf(df):
     df.plot(y='sevenDayAvgCases', kind='line', ax=ax1, color='orange')
 
     caseFirstMax = df.loc[0 : 100]['sevenDayAvgCases'].max()
-    caseFirstMaxForAxis = df.loc[0 : 100]['newCases'].max()+100
     caseFirstMaxPos = df.loc[0 : 100]['sevenDayAvgCases'].idxmax()
     caseFirstMaxDate = pd.to_datetime( df.loc[0 : 100]['date'][caseFirstMaxPos] ).strftime('%d %B')
-    ax1.annotate('Max 7 Day Avg Cases:\n' + str(int(caseFirstMax)) + ' on ' + caseFirstMaxDate  , 
+    ax1.annotate('First Wave Max. Avg:\n' + str(int(caseFirstMax)) + ' on ' + caseFirstMaxDate  , 
                 xy=(caseFirstMaxPos+42, caseFirstMax), xytext=(caseFirstMaxPos+42, caseFirstMax+60),
                 ha='center' )
     
     caseMin = df.loc[caseFirstMaxPos : ]['sevenDayAvgCases'].min()
     caseMinPos = df.loc[caseFirstMaxPos : ]['sevenDayAvgCases'].idxmin()
     caseMinDate = pd.to_datetime( df.loc[caseFirstMaxPos : ]['date'][caseMinPos] ).strftime('%d %B')
-    ax1.annotate('Min 7 Day Avg Cases:\n' + str(int(caseMin)) + ' on ' + caseMinDate  , 
+    ax1.annotate('Summer Min. Avg:\n' + str(int(caseMin)) + ' on ' + caseMinDate  , 
                 xy=(caseMinPos, caseMin), xytext=(caseMinPos, 1000),
                 ha='center' )
     
     ax1.set_xlim(marchDateInd, df.shape[0])
-    ax1.set_ylim(0, caseFirstMaxForAxis)
 
     ax1.legend()
     plt.xticks(range(marchDateInd,df.shape[0]) ,
