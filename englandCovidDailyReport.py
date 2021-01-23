@@ -125,16 +125,16 @@ def plotToPdf(df):
     caseFirstMax = df.loc[0 : 100]['sevenDayAvgCases'].max()
     caseFirstMaxPos = df.loc[0 : 100]['sevenDayAvgCases'].idxmax()
     caseFirstMaxDate = pd.to_datetime( df.loc[0 : 100]['date'][caseFirstMaxPos] ).strftime('%d %B')
-    ax1.annotate('First Wave Max. Avg:\n' + str(int(caseFirstMax)) + ' on ' + caseFirstMaxDate  , 
-                xy=(caseFirstMaxPos+42, caseFirstMax), xytext=(caseFirstMaxPos+42, caseFirstMax+60),
-                ha='center' )
+    # ax1.annotate('First Wave Max. Avg:\n' + str(int(caseFirstMax)) + ' on ' + caseFirstMaxDate  , 
+    #             xy=(caseFirstMaxPos+42, caseFirstMax), xytext=(caseFirstMaxPos+42, caseFirstMax+60),
+    #             ha='center' )
     
     caseMin = df.loc[caseFirstMaxPos : ]['sevenDayAvgCases'].min()
     caseMinPos = df.loc[caseFirstMaxPos : ]['sevenDayAvgCases'].idxmin()
     caseMinDate = pd.to_datetime( df.loc[caseFirstMaxPos : ]['date'][caseMinPos] ).strftime('%d %B')
-    ax1.annotate('Summer Min. Avg:\n' + str(int(caseMin)) + ' on ' + caseMinDate  , 
-                xy=(caseMinPos, caseMin), xytext=(caseMinPos, 1000),
-                ha='center' )
+    # ax1.annotate('Summer Min. Avg:\n' + str(int(caseMin)) + ' on ' + caseMinDate  , 
+    #             xy=(caseMinPos, caseMin), xytext=(caseMinPos, 1000),
+    #             ha='center' )
     
     ax1.set_xlim(marchDateInd, df.shape[0])
 
@@ -154,10 +154,10 @@ def plotToPdf(df):
     df.plot(y='sevenDayAvgDeaths', kind='line', ax=ax44, color='red', legend=False)
 
     ax4.set_ylabel('Hospital Admissions')
-    ax4.set_ylim(0, 2500)
+    ax4.set_ylim(0, 4500)
 
     ax44.set_ylabel('Deaths')
-    ax44.set_ylim(0, 800)
+    ax44.set_ylim(0, 1500)
     
     ax4.legend(loc='upper right' , bbox_to_anchor = (0.9, 0.71, 0.09, 0.28) )
     ax44.legend(loc='center right' , bbox_to_anchor = (0.9, 0.71, 0.09, 0.28) )
@@ -176,7 +176,7 @@ def plotToPdf(df):
 
     ax2.set_xlim(augustDateInd, df.shape[0])
     plt.xticks(range(augustDateInd,df.shape[0]) , df[augustDateInd : ]['weeklyDate'] , rotation='vertical')
-    ax2.yaxis.set_ticks(np.arange(0, 10, 0.5))
+    ax2.yaxis.set_ticks(np.arange(0, 20, 2))
     ax2.set_ylabel("%")
 
     plt.tight_layout()
@@ -291,7 +291,7 @@ def main():
     finalDf = process_df(initialDf)
     plotToPdf(finalDf)
 
-    recipients = ['tomreimer16@gmail.com', 'elliehall@live.com.au', 'danielrthorpe@icloud.com','edwardwilson725@gmail.com']
+    recipients = ['tomreimer16@gmail.com', 'elliehall@live.com.au']
     email_pdf(recipients, finalDf)
 
 if __name__ == "__main__":
